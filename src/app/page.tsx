@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 
 const TONE_PRESETS = ["witty", "informative", "hype", "casual", "professional"];
-const AUD_PRESETS = ["Crypto Twitter", "VN Crypto", "Builders", "Traders"];
+const AUD_PRESETS = ["Crypto Twitter", "VN Crypto", "Builders", "Traders", "Twitter Users"];
 
 export default function Page() {
   const [topic, setTopic] = useState("");
