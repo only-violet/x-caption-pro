@@ -1,37 +1,76 @@
 import { NextResponse } from "next/server";
-import { openai } from "@/echo";           // model adapter của Echo (Vercel AI SDK)
-import { generateObject } from "ai";       // API chuẩn của Vercel AI SDK
+import { openai as echoOpenAI } from "@/echo";
+import { generateObject } from "ai";
 import { z } from "zod";
 
+export const runtime = "nodejs";
+
+/* Schemas */
+const ShortSchema = z.object({
+  type: z.literal("short"),
+  options: z.array(z.string().max(280)).min(2).max(10),
+});
+const LongSchema = z.object({
+  type: z.literal("long"),
+  options: z.array(z.string().min(281).max(2000)).min(2).max(6),
+});
+const ThreadSchema = z.object({
+  type: z.literal("thread"),
+  options: z.array(z.array(z.string().max(280)).min(2).max(20)).min(2).max(6),
+});
+const ResultSchema = z.discriminatedUnion("type", [
+  ShortSchema,
+  LongSchema,
+  ThreadSchema,
+]);
+
+/* System prompt */
 const SYSTEM = `You are X Caption Pro, an expert Twitter (X) copywriter.
-Return JSON: {"options": string[]}
-Rules:
-- 4–8 options, each ≤ 280 characters.
-- Keep it punchy; hook rõ ràng; tránh rườm rà.
-- Viết theo ngôn ngữ của input (VI/EN).
-- Chỉ dùng emoji/hashtag khi thực sự cần; không bọc caption trong dấu ngoặc kép.`;
+You will receive "length": "short" | "long" | "thread".
+- If "short": {"type":"short","options":[...]} with each <= 280 chars.
+- If "long": {"type":"long","options":[...]} ~600–1500 chars (for X Premium).
+- If "thread": {"type":"thread","options":[[t1,t2,...],[...]]}, each tweet <= 280 chars.
+Keep language (VI/EN) same as user input. Use emojis/hashtags only when helpful. No quotation marks around captions.`;
 
+/* Handler */
 export async function POST(req: Request) {
-  const { topic, tone = "witty", audience = "Crypto Twitter", keywords = "", count = 6 } =
-    await req.json();
+  const body = await req.json().catch(() => ({}));
+  const {
+    topic,
+    tone = "witty",
+    audience = "Crypto Twitter",
+    keywords = "",
+    count = 6,
+    length = "short",
+  } = body || {};
 
-  const n = Math.min(Math.max(Number(count) || 6, 3), 10);
-  const prompt = `Topic: ${topic || "general"}
+  const n = Math.min(Math.max(Number(count) || 6, 2), 10);
+  const mode: "short" | "long" | "thread" =
+    ["short", "long", "thread"].includes(length) ? length : "short";
+
+  const userPrompt = `length: ${mode}
+Return ${n} options.
+Topic: ${topic || "general"}
 Tone: ${tone}
 Audience: ${audience}
-Keywords: ${keywords || "none"}
-Return ${n} diverse options.`;
+Keywords: ${keywords || "none"}`;
 
-  // Dùng generateObject + schema để nhận JSON chuẩn
-  const { object } = await generateObject({
-    model: openai("gpt-4o-mini"),   // dùng billing qua Echo
-    system: SYSTEM,
-    prompt,
-    temperature: 0.9,
-    schema: z.object({
-      options: z.array(z.string().max(280)).min(3).max(10),
-    }),
-  });
-
-  return NextResponse.json(object); // -> { options: [...] }
+  try {
+    const { object } = await generateObject({
+      model: echoOpenAI("gpt-4o-mini"),
+      system: SYSTEM,
+      prompt: userPrompt,
+      temperature: 0.9,
+      schema: ResultSchema,
+    });
+    return NextResponse.json(object);
+  } catch (err: any) {
+    // Trả lỗi rõ ràng để UI biết nhắc người dùng "Connect"
+    const msg =
+      typeof err?.message === "string" ? err.message : "Echo auth required";
+    return NextResponse.json(
+      { error: msg, hint: 'Click "Connect" (top-right) to link Echo, then retry.' },
+      { status: 401 }
+    );
+  }
 }
