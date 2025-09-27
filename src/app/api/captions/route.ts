@@ -29,7 +29,7 @@ Return ${n} diverse options.`;
     prompt,
     temperature: 0.9,
     schema: z.object({
-      options: z.array(z.string().max(280)).min(3).max(10),
+      options: z.array(z.string()).min(3).max(10),
     }),
   });
 
