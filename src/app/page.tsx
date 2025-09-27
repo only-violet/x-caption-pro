@@ -12,26 +12,63 @@ export default function Page() {
   const [keywords, setKeywords] = useState("");
   const [loading, setLoading] = useState(false);
   const [options, setOptions] = useState<string[]>([]);
+  const [lengthMode, setLengthMode] = useState<"short" | "thread" | "long">("short");
+  const [respType, setRespType] = useState<"short" | "thread" | "long">("short");
+  const [threads, setThreads] = useState<string[][]>([]);
+
   const canGenerate = useMemo(() => topic.trim().length > 0, [topic]);
 
-  async function generate() {
-    if (!canGenerate) return;
-    setLoading(true);
-    setOptions([]);
-    try {
-      const res = await fetch("/api/captions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, tone, audience, keywords, count: 6 }),
-      });
-      const data = await res.json();
-      setOptions(data.options || []);
-    } catch {
-      alert("Failed to generate captions");
-    } finally {
-      setLoading(false);
+async function generate() {
+  setLoading(true);
+  setOptions([]);
+  setThreads([]);
+  setRespType("short");
+
+  try {
+    const res = await fetch("/api/captions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        topic,
+        tone,
+        audience,
+        keywords,
+        count: 6,
+        length: lengthMode, // 👈 GỬI ĐỘ DÀI XUỐNG API
+      }),
+    });
+
+    // nếu server trả lỗi (ví dụ chưa Connect Echo), show message rõ ràng
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      const msg =
+        data?.hint ||
+        data?.error ||
+        `Request failed (${res.status}). Please click "Connect" (top-right) and try again.`;
+      alert(msg);
+      return;
     }
+
+    const data = await res.json();
+
+    // xử lý theo kiểu trả về
+    if (data?.type === "thread") {
+      setRespType("thread");
+      setThreads(data.options || []);
+      setOptions([]);
+      return;
+    }
+
+    // short/long: mảng string bình thường
+    setRespType(data?.type || "short");
+    setOptions(data.options || []);
+  } catch (e) {
+    alert("Network error. Please try again.");
+  } finally {
+    setLoading(false);
   }
+}
+
 
   function tweetNow(text: string) {
     const url = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
@@ -142,7 +179,27 @@ export default function Page() {
                 />
               </div>
             </div>
-
+                {/* Length selector */}
+<div className="mt-2">
+  <div className="mb-1 text-sm font-medium text-pink-900/80 dark:text-pink-100">
+    Length
+  </div>
+  <div className="flex flex-wrap gap-2">
+    {(["short", "thread", "long"] as const).map((m) => (
+      <button
+        key={m}
+        onClick={() => setLengthMode(m)}
+        className={`px-3 py-1.5 rounded-full border text-sm transition
+          ${lengthMode === m
+            ? "bg-pink-100 border-pink-300 text-pink-900 dark:bg-pink-500/20 dark:text-pink-100"
+            : "bg-white/70 border-pink-200 hover:bg-white/90 dark:bg-white/5 dark:text-pink-100/80"}`}
+        aria-pressed={lengthMode === m}
+      >
+        {m === "short" ? "Short (≤280)" : m === "thread" ? "Thread" : "Long"}
+      </button>
+    ))}
+  </div>
+</div>
             <div className="flex items-center gap-3 pt-2">
               <button
                 onClick={generate}
@@ -201,3 +258,43 @@ export default function Page() {
     </main>
   );
 }
+{/* Results (THREAD) */}
+{respType === "thread" && threads.length > 0 && (
+  <div className="mt-8 grid gap-4">
+    {threads.map((th, i) => (
+      <div key={i} className="glass rounded-2xl border shadow-md p-5">
+        <div className="mb-2 text-sm">
+          Thread option #{i + 1} — {th.length} tweets
+        </div>
+        <ol className="list-decimal pl-5 space-y-2">
+          {th.map((tw, j) => (
+            <li key={j}>
+              <div className="text-xs text-pink-600/70">{tw.length}/280</div>
+              {tw}
+            </li>
+          ))}
+        </ol>
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={() => navigator.clipboard.writeText(th.join("\n\n"))}
+            className="border rounded px-3 py-1.5 text-sm"
+          >
+            Copy thread
+          </button>
+          <button
+            onClick={() =>
+              window.open(
+                `https://x.com/intent/tweet?text=${encodeURIComponent(th[0])}`,
+                "_blank",
+                "noopener,noreferrer"
+              )
+            }
+            className="rounded px-3 py-1.5 text-sm text-white bg-pink-500 hover:bg-pink-600"
+          >
+            Start tweet
+          </button>
+        </div>
+      </div>
+    ))}
+  </div>
+)}
