@@ -19,32 +19,41 @@ export default function Page() {
   const [respType, setRespType] = useState<"tweet" | "caption" | "thread">("tweet");
 
   // Giả sử bạn đã có hàm gọi API để sinh nội dung:
-  async function generate() {
-    setLoading(true);
-    try {
-      // gọi API của bạn, nên truyền thêm lengthMode để prompt đúng (xem mục 3)
-      const r = await fetch("/api/generate", {
-        method: "POST",
-        body: JSON.stringify({
-          topic,
-          tone,
-          audience,
-          keywords,
-          lengthMode,
-          respType,
-        }),
-      });
-      const data = await r.json();
-      // data.text: string nội dung chính bạn sinh ra (1 lựa chọn)
-      // hoặc data.choices: string[] nhiều lựa chọn
-      const outs = Array.isArray(data.choices) && data.choices.length
-        ? data.choices
-        : [data.text ?? ""];
-      setOptions(outs.filter(Boolean));
-    } finally {
-      setLoading(false);
-    }
+async function generate() {
+  setLoading(true);
+  try {
+    const lengthInstruction =
+      lengthMode === "short"
+        ? "Write a single tweet no longer than 280 characters."
+        : lengthMode === "thread"
+        ? "Write a Twitter thread. Each tweet ≤280 chars, natural breaks, add 1/n numbering."
+        : "Write a long-form caption with no character limit (multiple paragraphs).";
+
+    const prompt = `
+Tone: ${tone}
+Audience: ${audience}
+${lengthInstruction}
+
+Topic: ${topic}
+${keywords ? `Keywords: ${keywords}` : ""}
+`;
+
+    // Gọi trực tiếp model (ví dụ OpenAI SDK)
+    const resp = await openai.chat.completions.create({
+      model: "gpt-4o-mini", // đổi thành model bạn dùng
+      messages: [
+        { role: "system", content: "You are a caption generator for X (Twitter)." },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: lengthMode === "long" ? 1500 : 500,
+    });
+
+    const text = resp.choices[0]?.message?.content ?? "";
+    setOptions([text]);
+  } finally {
+    setLoading(false);
   }
+}
 
   return (
     <main className="mx-auto max-w-3xl p-4 space-y-6">
