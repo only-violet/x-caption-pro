@@ -65,7 +65,7 @@ export default function Page() {
                 rows={4}
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder="Ví dụ: Recap testnet Monad tối nay; mời tham gia giveaway; cảm nhận sau khi dùng app..."
+                placeholder="Example: Recap testnet Monad; Invite to join giveaway; Opinion..."
                 className="w-full rounded-2xl border border-pink-200/70 bg-white/80 dark:bg-white/5 p-4 shadow-sm outline-none
                            focus:ring-2 focus:ring-pink-400/60 focus:border-pink-400 transition"
               />
@@ -122,10 +122,10 @@ export default function Page() {
                   Custom tone (optional)
                 </label>
                 <input
-                  placeholder="vd: friendly, authoritative… (ghi đè preset)"
+                  placeholder="vd: friendly, authoritative… "
                   className="w-full rounded-2xl border border-pink-200/70 bg-white/80 dark:bg-white/5 p-3 outline-none
                              focus:ring-2 focus:ring-pink-400/60 focus:border-pink-400"
-                  onChange={(e) => setTone(e.target.value || "witty")}
+                  onChange={(e) => setTone(e.target.value || "meme")}
                 />
               </div>
 
@@ -154,7 +154,7 @@ export default function Page() {
                 {loading ? "Generating…" : "Generate Captions"}
               </button>
               <span className="text-xs text-pink-700/70 dark:text-pink-200/70">
-                Ký tự: {topic.length} / 500+ (input mô tả)
+                Character: {topic.length} / 500+ (input description)
               </span>
             </div>
           </div>
