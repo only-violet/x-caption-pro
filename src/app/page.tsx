@@ -14,24 +14,59 @@ export default function Page() {
   const [options, setOptions] = useState<string[]>([]);
   const canGenerate = useMemo(() => topic.trim().length > 0, [topic]);
 
-  async function generate() {
-    if (!canGenerate) return;
-    setLoading(true);
-    setOptions([]);
-    try {
-      const res = await fetch("/api/captions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, tone, audience, keywords, count: 6 }),
-      });
-      const data = await res.json();
-      setOptions(data.options || []);
-    } catch {
-      alert("Failed to generate captions");
-    } finally {
-      setLoading(false);
+async function generate() {
+  setLoading(true);
+  // nếu bạn có state threads/respType thì dọn trước:
+  // setThreads?.([]);
+  // setRespType?.("short");
+  setOptions([]);
+
+  try {
+    const res = await fetch("/api/captions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        topic,
+        // nếu bạn có customTone thì dùng custom trước, không có thì dùng tone preset:
+        // tone: (customTone?.trim() || tone),
+        tone,
+        audience,
+        keywords,
+        count: 6,
+        // nếu UI của bạn CHƯA có selector độ dài, giữ "short" là mặc định:
+        // length: lengthMode ?? "short",
+      }),
+    });
+
+    // ⬇️ Điểm khác biệt quan trọng: xử lý khi server trả lỗi
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      const msg =
+        data?.hint ||
+        data?.error ||
+        `Request failed (${res.status}). Please click "Connect" (top-right) and try again.`;
+      alert(msg);
+      return; // dừng ở đây, không parse tiếp
     }
+
+    const data = await res.json();
+
+    // Nếu API của bạn đã hỗ trợ thread/long:
+    // if (data?.type === "thread") {
+    //   setRespType?.("thread");
+    //   setThreads?.(data.options || []);
+    //   setOptions([]);
+    //   return;
+    // }
+
+    // Mặc định (short):
+    setOptions(data.options || []);
+  } catch (e) {
+    alert("Network error. Please try again.");
+  } finally {
+    setLoading(false);
   }
+}
 
   function tweetNow(text: string) {
     const url = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
