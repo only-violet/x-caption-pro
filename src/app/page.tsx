@@ -28,14 +28,14 @@ export default function Page() {
 
       <label className="block text-sm mb-1">Topic / Context</label>
       <textarea className="w-full border rounded p-3 mb-4" rows={4}
-        placeholder="Ví dụ: recap testnet Monad / mời tham gia giveaway / announce nhỏ…"
+        placeholder="Example: recap testnet Monad / invite giveaway / announcement…"
         value={topic} onChange={e=>setTopic(e.target.value)} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
         <div>
           <label className="block text-sm mb-1">Tone</label>
           <select className="w-full border rounded p-2" value={tone} onChange={e=>setTone(e.target.value)}>
-            <option value="witty">Witty</option><option value="informative">Informative</option>
+            <option value="witty">Meme</option><option value="informative">Informative</option>
             <option value="hype">Hype</option><option value="casual">Casual</option>
             <option value="professional">Professional</option>
           </select>
