@@ -122,3 +122,38 @@
 		@apply bg-background text-foreground;
 	}
 }
+/* ===== Pink aesthetic background + helpers ===== */
+body{
+  --pink1: 255,182,193;  /* lightpink */
+  --pink2: 255,105,180;  /* hotpink */
+  background:
+    radial-gradient(900px 600px at 12% 8%, rgba(var(--pink1), .35), transparent 55%),
+    radial-gradient(700px 500px at 88% 6%, rgba(var(--pink2), .18), transparent 55%),
+    linear-gradient(180deg,#ffffff 0%,#fff0f8 100%);
+}
+
+@media (prefers-color-scheme: dark){
+  body{
+    background:
+      radial-gradient(900px 600px at 12% 8%, rgba(var(--pink1), .08), transparent 55%),
+      radial-gradient(700px 500px at 88% 6%, rgba(var(--pink2), .10), transparent 55%),
+      linear-gradient(180deg,#0e0a11 0%,#160d16 100%);
+  }
+}
+
+.text-gradient-pink{
+  background: linear-gradient(90deg,#ec4899 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.glass{
+  backdrop-filter: blur(16px);
+  background: rgba(255,255,255,.72);
+  border: 1px solid rgba(255,255,255,.55);
+}
+.dark .glass{
+  background: rgba(25,16,28,.6);
+  border-color: rgba(255,255,255,.1);
+}
