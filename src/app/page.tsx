@@ -173,7 +173,7 @@ export default function Page() {
                     Option #{i + 1}
                   </div>
                   <div className="text-xs text-pink-700/60 dark:text-pink-200/60">
-                    {opt.length}/280
+                    {opt.length}
                   </div>
                 </div>
                 <p className="whitespace-pre-wrap leading-relaxed">{opt}</p>
